@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, addDoc, query, where, writeBatch } from "firebase/firestore";
 import { db, auth } from "./firebase";
-import type { Category, Tag, Item } from "./schema";
+import type { Category, Tag, Item, Trip, TripItem } from "./schema";
 
 // Generic helpers
 const getCollection = (colName: string) => {
@@ -62,4 +62,65 @@ export const seedDefaultData = async () => {
   }
 
   await batch.commit();
+};
+
+export const fetchTrips = async (): Promise<Trip[]> => {
+  const snapshot = await getDocs(getCollection("trips"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
+};
+
+export const createTrip = async (trip: Omit<Trip, "id" | "user_id">) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not auth");
+  return await addDoc(collection(db, "trips"), { ...trip, user_id: user.uid });
+};
+
+export const generateListForTrip = async (tripId: string, tags: string[]) => {
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  // Fetch all items from user
+  const snapshot = await getDocs(getCollection("items"));
+  const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
+  
+  // Filter items that match the tags
+  const matchedItems = allItems.filter(item => {
+    // If the item has no tags, maybe it's a general item to always bring?
+    if (!item.tags || item.tags.length === 0) return true;
+    
+    // Otherwise, check if ANY of the item's tags are in the trip's tags
+    return item.tags.some(t => tags.includes(t));
+  });
+  
+  const batch = writeBatch(db);
+  for (const item of matchedItems) {
+    if (!item.id) continue;
+    const ref = doc(collection(db, "trip_items"));
+    batch.set(ref, {
+      trip_id: tripId,
+      item_id: item.id,
+      is_packed: false
+    });
+  }
+  await batch.commit();
+};
+
+import { getDoc, updateDoc } from "firebase/firestore";
+
+export const fetchTrip = async (tripId: string): Promise<Trip | null> => {
+  const docRef = doc(db, "trips", tripId);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() } as Trip;
+  return null;
+};
+
+export const fetchTripItems = async (tripId: string): Promise<TripItem[]> => {
+  const q = query(collection(db, "trip_items"), where("trip_id", "==", tripId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TripItem));
+};
+
+export const updateTripItemStatus = async (tripItemId: string, is_packed: boolean) => {
+  const docRef = doc(db, "trip_items", tripItemId);
+  await updateDoc(docRef, { is_packed });
 };
