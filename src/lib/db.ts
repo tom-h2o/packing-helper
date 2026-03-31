@@ -120,6 +120,28 @@ export const fetchTripItems = async (tripId: string): Promise<TripItem[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TripItem));
 };
 
+export const addItemToTrip = async (tripId: string, itemName: string, tagIdForTemp: string) => {
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  // 1. Give it a default general tag
+  const itemRef = await addDoc(collection(db, "items"), { 
+    name: itemName, 
+    category_id: "", // generic/uncategorized for now
+    tags: [tagIdForTemp], 
+    user_id: user.uid 
+  });
+  
+  // 2. Link it to the trip
+  await addDoc(collection(db, "trip_items"), {
+    trip_id: tripId,
+    item_id: itemRef.id,
+    is_packed: false
+  });
+  
+  return itemRef.id;
+};
+
 export const updateTripItemStatus = async (tripItemId: string, is_packed: boolean) => {
   const docRef = doc(db, "trip_items", tripItemId);
   await updateDoc(docRef, { is_packed });
