@@ -65,18 +65,18 @@ export default function NewTrip() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Destination / Trip Name</label>
-              <Input required placeholder="e.g. Summer in Spain" value={name} onChange={e => setName(e.target.value)} />
+              <label htmlFor="tripName" className="text-sm font-medium">Destination / Trip Name</label>
+              <Input id="tripName" required placeholder="e.g. Summer in Spain" value={name} onChange={e => setName(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
-                 <label className="text-sm font-medium">Start Date</label>
-                 <Input required type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                 <label htmlFor="startDate" className="text-sm font-medium">Start Date</label>
+                 <Input id="startDate" required type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                </div>
                <div className="space-y-2">
-                 <label className="text-sm font-medium">End Date</label>
-                 <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                 <label htmlFor="endDate" className="text-sm font-medium">End Date</label>
+                 <Input id="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                </div>
             </div>
 

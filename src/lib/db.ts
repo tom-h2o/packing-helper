@@ -46,19 +46,91 @@ export const seedDefaultData = async () => {
   const defaultTags = [
     { name: "Hot", type: "temperature" },
     { name: "Cold", type: "temperature" },
+    { name: "Warm", type: "temperature" },
     { name: "Beach", type: "activity" },
     { name: "Skiing", type: "activity" },
-    { name: "Camping", type: "activity" }
+    { name: "Camping", type: "activity" },
+    { name: "Hiking", type: "activity" },
+    { name: "Business", type: "activity" },
+    { name: "City", type: "activity" }
   ];
+
+  const catMap = new Map<string, string>();
+  const tagMap = new Map<string, string>();
 
   for (const cat of defaultCategories) {
     const ref = doc(collection(db, "categories"));
+    catMap.set(cat, ref.id);
     batch.set(ref, { name: cat, user_id: user.uid });
   }
 
   for (const t of defaultTags) {
     const ref = doc(collection(db, "tags"));
+    tagMap.set(t.name, ref.id);
     batch.set(ref, { name: t.name, type: t.type, user_id: user.uid });
+  }
+
+  const itemsToSeed = [
+    { name: "T-Shirt", cat: "Clothing", tags: ["Hot", "Warm", "City"] },
+    { name: "Shorts", cat: "Clothing", tags: ["Hot", "Beach"] },
+    { name: "Jeans", cat: "Clothing", tags: ["Cold", "Warm", "City"] },
+    { name: "Heavy Coat", cat: "Clothing", tags: ["Cold", "Skiing"] },
+    { name: "Thermal Underwear", cat: "Clothing", tags: ["Cold", "Skiing", "Camping"] },
+    { name: "Swimsuit", cat: "Clothing", tags: ["Hot", "Beach"] },
+    { name: "Rain Jacket", cat: "Clothing", tags: ["Warm", "Cold", "Hiking", "City"] },
+    { name: "Hiking Boots", cat: "Clothing", tags: ["Cold", "Warm", "Hiking", "Camping"] },
+    { name: "Sneakers", cat: "Clothing", tags: ["City", "Warm", "Hot"] },
+    { name: "Sandals", cat: "Clothing", tags: ["Hot", "Beach"] },
+    { name: "Dress Shoes", cat: "Clothing", tags: ["Business"] },
+    { name: "Suit", cat: "Clothing", tags: ["Business"] },
+    { name: "Socks", cat: "Clothing", tags: [] },
+    { name: "Underwear", cat: "Clothing", tags: [] },
+    { name: "Toothbrush", cat: "Toiletries", tags: [] },
+    { name: "Toothpaste", cat: "Toiletries", tags: [] },
+    { name: "Deodorant", cat: "Toiletries", tags: [] },
+    { name: "Sunscreen", cat: "Toiletries", tags: ["Hot", "Beach", "Hiking"] },
+    { name: "Lip Balm", cat: "Toiletries", tags: ["Cold", "Skiing"] },
+    { name: "Shampoo", cat: "Toiletries", tags: [] },
+    { name: "Body Wash", cat: "Toiletries", tags: [] },
+    { name: "Hairbrush", cat: "Toiletries", tags: [] },
+    { name: "First Aid Kit", cat: "Toiletries", tags: ["Hiking", "Camping", "Skiing"] },
+    { name: "Mosquito Repellent", cat: "Toiletries", tags: ["Camping", "Hiking", "Warm"] },
+    { name: "Smartphone", cat: "Electronics", tags: [] },
+    { name: "Phone Charger", cat: "Electronics", tags: [] },
+    { name: "Laptop", cat: "Electronics", tags: ["Business", "City"] },
+    { name: "Laptop Charger", cat: "Electronics", tags: ["Business", "City"] },
+    { name: "Power Bank", cat: "Electronics", tags: ["Hiking", "Camping", "City"] },
+    { name: "Travel Adapter", cat: "Electronics", tags: ["City", "Business"] },
+    { name: "Headphones", cat: "Electronics", tags: [] },
+    { name: "Camera", cat: "Electronics", tags: ["City", "Hiking", "Beach"] },
+    { name: "Flashlight", cat: "Gear", tags: ["Camping", "Hiking"] },
+    { name: "Sleeping Bag", cat: "Gear", tags: ["Camping"] },
+    { name: "Tent", cat: "Gear", tags: ["Camping"] },
+    { name: "Goggles", cat: "Gear", tags: ["Skiing"] },
+    { name: "Helmet", cat: "Gear", tags: ["Skiing"] },
+    { name: "Ski Gloves", cat: "Gear", tags: ["Skiing", "Cold"] },
+    { name: "Trekking Poles", cat: "Gear", tags: ["Hiking"] },
+    { name: "Beach Towel", cat: "Gear", tags: ["Beach"] },
+    { name: "Snorkel", cat: "Gear", tags: ["Beach"] },
+    { name: "Water Bottle", cat: "Gear", tags: ["Hiking", "Camping", "Beach", "City"] },
+    { name: "Multi-tool", cat: "Gear", tags: ["Camping", "Hiking"] },
+    { name: "Passport", cat: "Documents", tags: [] },
+    { name: "Driver's License", cat: "Documents", tags: [] },
+    { name: "Credit Cards", cat: "Documents", tags: [] },
+    { name: "Cash", cat: "Documents", tags: [] },
+    { name: "Travel Insurance", cat: "Documents", tags: ["City", "Business"] },
+    { name: "Boarding Pass", cat: "Documents", tags: [] },
+    { name: "Hotel Reservation", cat: "Documents", tags: [] }
+  ];
+
+  for (const item of itemsToSeed) {
+    const ref = doc(collection(db, "items"));
+    batch.set(ref, {
+      name: item.name,
+      category_id: catMap.get(item.cat) || "",
+      tags: item.tags.map(t => tagMap.get(t)).filter(Boolean) as string[],
+      user_id: user.uid
+    });
   }
 
   await batch.commit();
