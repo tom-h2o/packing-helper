@@ -30,10 +30,16 @@ export default function Inventory() {
   }, []);
 
   const handleSeed = async () => {
-    setSeeding(true);
-    await seedDefaultData();
-    await loadData();
-    setSeeding(false);
+    try {
+      setSeeding(true);
+      await seedDefaultData();
+      await loadData();
+    } catch (e: any) {
+      console.error("Seeding failed:", e);
+      alert("Error generating data: " + e.message + "\n\nMake sure your Firebase Firestore database is officially created and has security rules allowing writes!");
+    } finally {
+      setSeeding(false);
+    }
   };
 
   if (loading) return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-primary opacity-50" /></div>;
