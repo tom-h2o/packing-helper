@@ -1,31 +1,29 @@
-export interface Category {
-  id?: string;
-  name: string;
-  user_id: string;
-}
-
 export interface Tag {
   id?: string;
   name: string;
-  type: 'activity' | 'temperature' | 'general';
+  type: 'activity' | 'temperature' | 'category';
   user_id: string;
 }
 
 export interface Item {
   id?: string;
   name: string;
-  category_id: string;
-  tags: string[]; // Array of tag IDs
+  tags: string[];
+  quantity_relevant?: boolean;
+  default_quantity?: number;
+  order?: number;
   user_id: string;
 }
 
 export interface Trip {
   id?: string;
   name: string;
+  country?: string;
+  description?: string;
   date_start: string;
   date_end: string;
-  temperature: string; // Tag ID
-  activities: string[]; // Array of tag IDs
+  temperature: string;
+  activities: string[];
   user_id: string;
 }
 
@@ -34,4 +32,5 @@ export interface TripItem {
   trip_id: string;
   item_id: string;
   is_packed: boolean;
+  quantity?: number;
 }

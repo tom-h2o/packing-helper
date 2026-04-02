@@ -1,6 +1,6 @@
-import { collection, doc, getDocs, addDoc, query, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, where, writeBatch } from "firebase/firestore";
 import { db, auth } from "./firebase";
-import type { Category, Tag, Item, Trip, TripItem } from "./schema";
+import type { Tag, Item, Trip, TripItem } from "./schema";
 
 // Generic helpers
 const getCollection = (colName: string) => {
@@ -9,11 +9,7 @@ const getCollection = (colName: string) => {
   return query(collection(db, colName), where("user_id", "==", user.uid));
 };
 
-export const fetchCategories = async (): Promise<Category[]> => {
-  const snapshot = await getDocs(getCollection("categories"));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-};
-
+// ── Fetch ──────────────────────────────────────────────
 export const fetchTags = async (): Promise<Tag[]> => {
   const snapshot = await getDocs(getCollection("tags"));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tag));
@@ -24,160 +20,10 @@ export const fetchItems = async (): Promise<Item[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
 };
 
-export const addCategory = async (name: string) => {
-  return await addDoc(collection(db, "categories"), { name, user_id: auth.currentUser?.uid });
-};
-
-export const addTag = async (name: string, type: 'activity'|'temperature'|'general' = 'general') => {
-  return await addDoc(collection(db, "tags"), { name, type, user_id: auth.currentUser?.uid });
-};
-
-export const addItem = async (item: Omit<Item, "id" | "user_id">) => {
-  return await addDoc(collection(db, "items"), { ...item, user_id: auth.currentUser?.uid });
-};
-
-export const seedDefaultData = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const batch = writeBatch(db);
-
-  const defaultCategories = ["Clothing", "Toiletries", "Electronics", "Gear", "Documents"];
-  const defaultTags = [
-    { name: "Hot", type: "temperature" },
-    { name: "Cold", type: "temperature" },
-    { name: "Warm", type: "temperature" },
-    { name: "Beach", type: "activity" },
-    { name: "Skiing", type: "activity" },
-    { name: "Camping", type: "activity" },
-    { name: "Hiking", type: "activity" },
-    { name: "Business", type: "activity" },
-    { name: "City", type: "activity" }
-  ];
-
-  const catMap = new Map<string, string>();
-  const tagMap = new Map<string, string>();
-
-  for (const cat of defaultCategories) {
-    const ref = doc(collection(db, "categories"));
-    catMap.set(cat, ref.id);
-    batch.set(ref, { name: cat, user_id: user.uid });
-  }
-
-  for (const t of defaultTags) {
-    const ref = doc(collection(db, "tags"));
-    tagMap.set(t.name, ref.id);
-    batch.set(ref, { name: t.name, type: t.type, user_id: user.uid });
-  }
-
-  const itemsToSeed = [
-    { name: "T-Shirt", cat: "Clothing", tags: ["Hot", "Warm", "City"] },
-    { name: "Shorts", cat: "Clothing", tags: ["Hot", "Beach"] },
-    { name: "Jeans", cat: "Clothing", tags: ["Cold", "Warm", "City"] },
-    { name: "Heavy Coat", cat: "Clothing", tags: ["Cold", "Skiing"] },
-    { name: "Thermal Underwear", cat: "Clothing", tags: ["Cold", "Skiing", "Camping"] },
-    { name: "Swimsuit", cat: "Clothing", tags: ["Hot", "Beach"] },
-    { name: "Rain Jacket", cat: "Clothing", tags: ["Warm", "Cold", "Hiking", "City"] },
-    { name: "Hiking Boots", cat: "Clothing", tags: ["Cold", "Warm", "Hiking", "Camping"] },
-    { name: "Sneakers", cat: "Clothing", tags: ["City", "Warm", "Hot"] },
-    { name: "Sandals", cat: "Clothing", tags: ["Hot", "Beach"] },
-    { name: "Dress Shoes", cat: "Clothing", tags: ["Business"] },
-    { name: "Suit", cat: "Clothing", tags: ["Business"] },
-    { name: "Socks", cat: "Clothing", tags: [] },
-    { name: "Underwear", cat: "Clothing", tags: [] },
-    { name: "Toothbrush", cat: "Toiletries", tags: [] },
-    { name: "Toothpaste", cat: "Toiletries", tags: [] },
-    { name: "Deodorant", cat: "Toiletries", tags: [] },
-    { name: "Sunscreen", cat: "Toiletries", tags: ["Hot", "Beach", "Hiking"] },
-    { name: "Lip Balm", cat: "Toiletries", tags: ["Cold", "Skiing"] },
-    { name: "Shampoo", cat: "Toiletries", tags: [] },
-    { name: "Body Wash", cat: "Toiletries", tags: [] },
-    { name: "Hairbrush", cat: "Toiletries", tags: [] },
-    { name: "First Aid Kit", cat: "Toiletries", tags: ["Hiking", "Camping", "Skiing"] },
-    { name: "Mosquito Repellent", cat: "Toiletries", tags: ["Camping", "Hiking", "Warm"] },
-    { name: "Smartphone", cat: "Electronics", tags: [] },
-    { name: "Phone Charger", cat: "Electronics", tags: [] },
-    { name: "Laptop", cat: "Electronics", tags: ["Business", "City"] },
-    { name: "Laptop Charger", cat: "Electronics", tags: ["Business", "City"] },
-    { name: "Power Bank", cat: "Electronics", tags: ["Hiking", "Camping", "City"] },
-    { name: "Travel Adapter", cat: "Electronics", tags: ["City", "Business"] },
-    { name: "Headphones", cat: "Electronics", tags: [] },
-    { name: "Camera", cat: "Electronics", tags: ["City", "Hiking", "Beach"] },
-    { name: "Flashlight", cat: "Gear", tags: ["Camping", "Hiking"] },
-    { name: "Sleeping Bag", cat: "Gear", tags: ["Camping"] },
-    { name: "Tent", cat: "Gear", tags: ["Camping"] },
-    { name: "Goggles", cat: "Gear", tags: ["Skiing"] },
-    { name: "Helmet", cat: "Gear", tags: ["Skiing"] },
-    { name: "Ski Gloves", cat: "Gear", tags: ["Skiing", "Cold"] },
-    { name: "Trekking Poles", cat: "Gear", tags: ["Hiking"] },
-    { name: "Beach Towel", cat: "Gear", tags: ["Beach"] },
-    { name: "Snorkel", cat: "Gear", tags: ["Beach"] },
-    { name: "Water Bottle", cat: "Gear", tags: ["Hiking", "Camping", "Beach", "City"] },
-    { name: "Multi-tool", cat: "Gear", tags: ["Camping", "Hiking"] },
-    { name: "Passport", cat: "Documents", tags: [] },
-    { name: "Driver's License", cat: "Documents", tags: [] },
-    { name: "Credit Cards", cat: "Documents", tags: [] },
-    { name: "Cash", cat: "Documents", tags: [] },
-    { name: "Travel Insurance", cat: "Documents", tags: ["City", "Business"] },
-    { name: "Boarding Pass", cat: "Documents", tags: [] },
-    { name: "Hotel Reservation", cat: "Documents", tags: [] }
-  ];
-
-  for (const item of itemsToSeed) {
-    const ref = doc(collection(db, "items"));
-    batch.set(ref, {
-      name: item.name,
-      category_id: catMap.get(item.cat) || "",
-      tags: item.tags.map(t => tagMap.get(t)).filter(Boolean) as string[],
-      user_id: user.uid
-    });
-  }
-
-  await batch.commit();
-};
-
 export const fetchTrips = async (): Promise<Trip[]> => {
   const snapshot = await getDocs(getCollection("trips"));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trip));
 };
-
-export const createTrip = async (trip: Omit<Trip, "id" | "user_id">) => {
-  const user = auth.currentUser;
-  if (!user) throw new Error("Not auth");
-  return await addDoc(collection(db, "trips"), { ...trip, user_id: user.uid });
-};
-
-export const generateListForTrip = async (tripId: string, tags: string[]) => {
-  const user = auth.currentUser;
-  if (!user) return;
-  
-  // Fetch all items from user
-  const snapshot = await getDocs(getCollection("items"));
-  const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
-  
-  // Filter items that match the tags
-  const matchedItems = allItems.filter(item => {
-    // If the item has no tags, maybe it's a general item to always bring?
-    if (!item.tags || item.tags.length === 0) return true;
-    
-    // Otherwise, check if ANY of the item's tags are in the trip's tags
-    return item.tags.some(t => tags.includes(t));
-  });
-  
-  const batch = writeBatch(db);
-  for (const item of matchedItems) {
-    if (!item.id) continue;
-    const ref = doc(collection(db, "trip_items"));
-    batch.set(ref, {
-      trip_id: tripId,
-      item_id: item.id,
-      is_packed: false
-    });
-  }
-  await batch.commit();
-};
-
-import { getDoc, updateDoc } from "firebase/firestore";
 
 export const fetchTrip = async (tripId: string): Promise<Trip | null> => {
   const docRef = doc(db, "trips", tripId);
@@ -192,29 +38,198 @@ export const fetchTripItems = async (tripId: string): Promise<TripItem[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TripItem));
 };
 
+// ── Tags ───────────────────────────────────────────────
+export const addTag = async (name: string, type: 'activity' | 'temperature' | 'category' = 'category') => {
+  return await addDoc(collection(db, "tags"), { name, type, user_id: auth.currentUser?.uid });
+};
+
+export const updateTag = async (tagId: string, name: string) => {
+  await updateDoc(doc(db, "tags", tagId), { name });
+};
+
+export const deleteTag = async (tagId: string) => {
+  await deleteDoc(doc(db, "tags", tagId));
+};
+
+// ── Items ──────────────────────────────────────────────
+export const addItem = async (item: Omit<Item, "id" | "user_id">) => {
+  return await addDoc(collection(db, "items"), { ...item, user_id: auth.currentUser?.uid });
+};
+
+export const updateItem = async (itemId: string, data: Partial<Omit<Item, "id" | "user_id">>) => {
+  await updateDoc(doc(db, "items", itemId), data);
+};
+
+export const deleteItem = async (itemId: string) => {
+  await deleteDoc(doc(db, "items", itemId));
+};
+
+// ── Trips ──────────────────────────────────────────────
+export const createTrip = async (trip: Omit<Trip, "id" | "user_id">) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not auth");
+  return await addDoc(collection(db, "trips"), { ...trip, user_id: user.uid });
+};
+
 export const addItemToTrip = async (tripId: string, itemName: string, tagIdForTemp: string) => {
   const user = auth.currentUser;
   if (!user) return;
-  
-  // 1. Give it a default general tag
-  const itemRef = await addDoc(collection(db, "items"), { 
-    name: itemName, 
-    category_id: "", // generic/uncategorized for now
-    tags: [tagIdForTemp], 
-    user_id: user.uid 
+
+  const itemRef = await addDoc(collection(db, "items"), {
+    name: itemName,
+    tags: [tagIdForTemp],
+    user_id: user.uid
   });
-  
-  // 2. Link it to the trip
+
   await addDoc(collection(db, "trip_items"), {
     trip_id: tripId,
     item_id: itemRef.id,
     is_packed: false
   });
-  
+
   return itemRef.id;
 };
 
+// ── Trip Items ─────────────────────────────────────────
 export const updateTripItemStatus = async (tripItemId: string, is_packed: boolean) => {
-  const docRef = doc(db, "trip_items", tripItemId);
-  await updateDoc(docRef, { is_packed });
+  await updateDoc(doc(db, "trip_items", tripItemId), { is_packed });
+};
+
+export const updateTripItemQuantity = async (tripItemId: string, quantity: number) => {
+  await updateDoc(doc(db, "trip_items", tripItemId), { quantity });
+};
+
+// ── Trip generation ────────────────────────────────────
+export const generateListForTrip = async (tripId: string, tags: string[]) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const snapshot = await getDocs(getCollection("items"));
+  const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
+
+  const matchedItems = allItems.filter(item => {
+    if (!item.tags || item.tags.length === 0) return true;
+    return item.tags.some(t => tags.includes(t));
+  });
+
+  const batch = writeBatch(db);
+  for (const item of matchedItems) {
+    if (!item.id) continue;
+    const ref = doc(collection(db, "trip_items"));
+    batch.set(ref, {
+      trip_id: tripId,
+      item_id: item.id,
+      is_packed: false,
+      ...(item.quantity_relevant && item.default_quantity ? { quantity: item.default_quantity } : {})
+    });
+  }
+  await batch.commit();
+};
+
+// ── Seed ───────────────────────────────────────────────
+export const seedDefaultData = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const batch = writeBatch(db);
+
+  const defaultTags = [
+    // Categories
+    { name: "Clothing", type: "category" },
+    { name: "Toiletries", type: "category" },
+    { name: "Electronics", type: "category" },
+    { name: "Gear", type: "category" },
+    { name: "Documents", type: "category" },
+    // Temperature
+    { name: "Hot", type: "temperature" },
+    { name: "Cold", type: "temperature" },
+    { name: "Warm", type: "temperature" },
+    // Activities
+    { name: "Beach", type: "activity" },
+    { name: "Skiing", type: "activity" },
+    { name: "Camping", type: "activity" },
+    { name: "Hiking", type: "activity" },
+    { name: "Business", type: "activity" },
+    { name: "City", type: "activity" }
+  ];
+
+  const tagMap = new Map<string, string>();
+
+  for (const t of defaultTags) {
+    const ref = doc(collection(db, "tags"));
+    tagMap.set(t.name, ref.id);
+    batch.set(ref, { name: t.name, type: t.type, user_id: user.uid });
+  }
+
+  const quantityItems = new Map([
+    ["Socks", 7],
+    ["Underwear", 7],
+    ["T-Shirt", 5],
+  ]);
+
+  const itemsToSeed = [
+    { name: "T-Shirt", tags: ["Clothing", "Hot", "Warm", "City"] },
+    { name: "Shorts", tags: ["Clothing", "Hot", "Beach"] },
+    { name: "Jeans", tags: ["Clothing", "Cold", "Warm", "City"] },
+    { name: "Heavy Coat", tags: ["Clothing", "Cold", "Skiing"] },
+    { name: "Thermal Underwear", tags: ["Clothing", "Cold", "Skiing", "Camping"] },
+    { name: "Swimsuit", tags: ["Clothing", "Hot", "Beach"] },
+    { name: "Rain Jacket", tags: ["Clothing", "Warm", "Cold", "Hiking", "City"] },
+    { name: "Hiking Boots", tags: ["Clothing", "Cold", "Warm", "Hiking", "Camping"] },
+    { name: "Sneakers", tags: ["Clothing", "City", "Warm", "Hot"] },
+    { name: "Sandals", tags: ["Clothing", "Hot", "Beach"] },
+    { name: "Dress Shoes", tags: ["Clothing", "Business"] },
+    { name: "Suit", tags: ["Clothing", "Business"] },
+    { name: "Socks", tags: ["Clothing"] },
+    { name: "Underwear", tags: ["Clothing"] },
+    { name: "Toothbrush", tags: ["Toiletries"] },
+    { name: "Toothpaste", tags: ["Toiletries"] },
+    { name: "Deodorant", tags: ["Toiletries"] },
+    { name: "Sunscreen", tags: ["Toiletries", "Hot", "Beach", "Hiking"] },
+    { name: "Lip Balm", tags: ["Toiletries", "Cold", "Skiing"] },
+    { name: "Shampoo", tags: ["Toiletries"] },
+    { name: "Body Wash", tags: ["Toiletries"] },
+    { name: "Hairbrush", tags: ["Toiletries"] },
+    { name: "First Aid Kit", tags: ["Toiletries", "Hiking", "Camping", "Skiing"] },
+    { name: "Mosquito Repellent", tags: ["Toiletries", "Camping", "Hiking", "Warm"] },
+    { name: "Smartphone", tags: ["Electronics"] },
+    { name: "Phone Charger", tags: ["Electronics"] },
+    { name: "Laptop", tags: ["Electronics", "Business", "City"] },
+    { name: "Laptop Charger", tags: ["Electronics", "Business", "City"] },
+    { name: "Power Bank", tags: ["Electronics", "Hiking", "Camping", "City"] },
+    { name: "Travel Adapter", tags: ["Electronics", "City", "Business"] },
+    { name: "Headphones", tags: ["Electronics"] },
+    { name: "Camera", tags: ["Electronics", "City", "Hiking", "Beach"] },
+    { name: "Flashlight", tags: ["Gear", "Camping", "Hiking"] },
+    { name: "Sleeping Bag", tags: ["Gear", "Camping"] },
+    { name: "Tent", tags: ["Gear", "Camping"] },
+    { name: "Goggles", tags: ["Gear", "Skiing"] },
+    { name: "Helmet", tags: ["Gear", "Skiing"] },
+    { name: "Ski Gloves", tags: ["Gear", "Skiing", "Cold"] },
+    { name: "Trekking Poles", tags: ["Gear", "Hiking"] },
+    { name: "Beach Towel", tags: ["Gear", "Beach"] },
+    { name: "Snorkel", tags: ["Gear", "Beach"] },
+    { name: "Water Bottle", tags: ["Gear", "Hiking", "Camping", "Beach", "City"] },
+    { name: "Multi-tool", tags: ["Gear", "Camping", "Hiking"] },
+    { name: "Passport", tags: ["Documents"] },
+    { name: "Driver's License", tags: ["Documents"] },
+    { name: "Credit Cards", tags: ["Documents"] },
+    { name: "Cash", tags: ["Documents"] },
+    { name: "Travel Insurance", tags: ["Documents", "City", "Business"] },
+    { name: "Boarding Pass", tags: ["Documents"] },
+    { name: "Hotel Reservation", tags: ["Documents"] }
+  ];
+
+  for (const item of itemsToSeed) {
+    const ref = doc(collection(db, "items"));
+    const defaultQty = quantityItems.get(item.name);
+    batch.set(ref, {
+      name: item.name,
+      tags: item.tags.map(t => tagMap.get(t)).filter(Boolean) as string[],
+      ...(defaultQty ? { quantity_relevant: true, default_quantity: defaultQty } : {}),
+      user_id: user.uid
+    });
+  }
+
+  await batch.commit();
 };

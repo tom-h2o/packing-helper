@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { auth } from "../lib/firebase";
-import { fetchTrips, fetchItems } from "../lib/db";
-import type { Trip } from "../lib/schema";
+import { fetchTrips, fetchItems, fetchTags } from "../lib/db";
+import type { Trip, Tag } from "../lib/schema";
 import { Button } from "../components/ui/button";
 import { Plus, PlaneTakeoff, Backpack, Compass, Luggage } from "lucide-react";
+import { getFlagEmoji } from "../lib/countries";
 
 export default function Dashboard() {
   const user = auth.currentUser;
   const [trips, setTrips] = useState<Trip[]>([]);
   const [totalItems, setTotalItems] = useState(0);
+  const [tagMap, setTagMap] = useState<Map<string, Tag>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([fetchTrips(), fetchItems()]).then(([t, i]) => {
+    Promise.all([fetchTrips(), fetchItems(), fetchTags()]).then(([t, i, tags]) => {
       setTrips(t);
       setTotalItems(i.length);
+      setTagMap(new Map(tags.map(tag => [tag.id!, tag])));
       setLoading(false);
     });
   }, [user]);
@@ -73,7 +76,15 @@ export default function Dashboard() {
           <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <PlaneTakeoff className="h-6 w-6 text-orange-500" />
           </div>
-          <span className="text-3xl font-extrabold">{trips.length > 0 ? new Date(trips[trips.length-1].date_start).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '-'}</span>
+          <span className="text-3xl font-extrabold">{(() => {
+            const now = new Date();
+            const upcoming = trips
+              .filter(t => new Date(t.date_start) >= now)
+              .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
+            return upcoming.length > 0
+              ? new Date(upcoming[0].date_start).toLocaleDateString(undefined, {month:'short', day:'numeric'})
+              : '-';
+          })()}</span>
           <span className="text-xs uppercase tracking-widest text-muted-foreground mt-1 font-bold">Next Departure</span>
         </div>
       </section>
@@ -97,8 +108,16 @@ export default function Dashboard() {
             {trips.map((trip, i) => (
               <Link to={`/trip/${trip.id}`} key={trip.id} className="group relative" style={{animationDelay: `${i * 100}ms`}} >
                 <div className="absolute -inset-1 bg-gradient-to-tr from-primary/40 to-indigo-500/40 rounded-[2rem] blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                <div className="relative glass-card h-full p-8 text-left rounded-3xl flex flex-col bg-card/80">
-                  <h3 className="text-2xl font-extrabold mb-2 line-clamp-1">{trip.name}</h3>
+                <div className="relative glass-card h-full p-8 text-left rounded-3xl flex flex-col bg-card/80 overflow-hidden">
+                  {trip.country && (
+                    <div className="absolute top-3 right-4 text-[4.5rem] leading-none select-none opacity-20 pointer-events-none">
+                      {getFlagEmoji(trip.country)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 mb-2">
+                    {trip.country && <span className="text-2xl leading-none shrink-0">{getFlagEmoji(trip.country)}</span>}
+                    <h3 className="text-2xl font-extrabold line-clamp-1">{trip.name}</h3>
+                  </div>
                   <p className="text-sm font-bold text-muted-foreground/80 mb-6 flex items-center gap-2">
                     {new Date(trip.date_start).toLocaleDateString(undefined, {month:'short', day:'numeric'})} 
                     <span className="text-muted-foreground/40 text-xs text-center border-b px-2 flex-1 mx-2 relative top-[-4px]">to</span>
@@ -106,7 +125,7 @@ export default function Dashboard() {
                   </p>
                   
                   <div className="mt-auto pt-6 border-t border-border flex gap-2 flex-wrap">
-                    <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold border border-primary/20">{trip.temperature}</span>
+                    <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold border border-primary/20">{tagMap.get(trip.temperature)?.name ?? trip.temperature}</span>
                     <span className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-bold shadow-sm">{trip.activities.length} Activities</span>
                   </div>
                 </div>
