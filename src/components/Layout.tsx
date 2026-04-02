@@ -1,12 +1,11 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import { LogOut, PlaneTakeoff, Menu, X } from "lucide-react";
+import { LogOut, PlaneTakeoff } from "lucide-react";
 import { Button } from "./ui/button";
 
 export default function Layout() {
   const [user, setUser] = useState(auth.currentUser);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 

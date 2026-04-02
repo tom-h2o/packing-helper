@@ -37,6 +37,8 @@ export default function TripView() {
 
   useEffect(() => {
     loadTripData();
+  // loadTripData is stable for the lifetime of this id value
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const togglePacked = async (tripItemId: string, currentStatus: boolean, e?: React.MouseEvent) => {

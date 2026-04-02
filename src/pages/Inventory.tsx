@@ -402,9 +402,9 @@ export default function Inventory() {
       setSeeding(true);
       await seedDefaultData();
       await loadData();
-    } catch (e: any) {
+    } catch (e) {
       console.error("Seeding failed:", e);
-      alert("Error generating data: " + e.message);
+      alert("Error generating data: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSeeding(false);
     }

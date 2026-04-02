@@ -16,6 +16,7 @@ describe('NewTrip Component', () => {
   });
 
   it('renders correctly and fetches tags on mount', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db.fetchTags as any).mockResolvedValue([
       { id: '1', name: 'Hot', type: 'temperature' },
       { id: '2', name: 'Beach', type: 'activity' }
@@ -36,7 +37,9 @@ describe('NewTrip Component', () => {
   });
 
   it('submits valid forms and navigates', async () => {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      (db.fetchTags as any).mockResolvedValue([{ id: '1', name: 'Warm', type: 'temperature' }]);
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      (db.createTrip as any).mockResolvedValue({ id: 'trip123' });
      
      render(

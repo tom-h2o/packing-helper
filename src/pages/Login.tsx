@@ -24,8 +24,8 @@ export default function Login() {
         await createUserWithEmailAndPassword(auth, email, password);
       }
       navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Authentication failed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed.");
     }
   };
 
