@@ -6,13 +6,14 @@ Rough backlog of ideas, ordered roughly by effort. Nothing here is committed to.
 
 ## UX / Forms
 
-- **Trip editing** — currently trips are write-once. Add an edit page or inline editing for name, dates, country, temperature, activities.
-- **Duplicate trip** — clone an existing trip as a starting point (same items, new dates/destination).
-- **Trip archiving** — mark past trips as archived so the dashboard doesn't get cluttered.
-- **Drag-to-reorder items** in the checklist — `@dnd-kit` is already installed, just not wired up.
-- **Item notes** — optional free-text note on a TripItem (e.g. "borrow from dad", "buy at destination").
-- **Category grouping in checklist** — group TripView checklist by category tag instead of a flat list.
-- **Quick-add item from TripView** — add an ad-hoc item to a trip without going through the full inventory drawer.
+- **Remove item from checklist** — ✅ done (trash icon per row)
+- **Trip editing** — ✅ done (slide-over drawer with full edit)
+- **Duplicate trip** — ✅ done (copies all trip items, navigates to the clone)
+- **Trip archiving** — ✅ done (archive/restore from TripView; Dashboard shows archived toggle)
+- **Drag-to-reorder items** — ✅ done (DnD in flat view using @dnd-kit)
+- **Item notes** — ✅ done (per-item note field in checklist, auto-saved)
+- **Category grouping in checklist** — ✅ done (toggle between grouped/flat view)
+- **Quick-add item from TripView** — ✅ done (slide-over with search + category filter)
 
 ---
 

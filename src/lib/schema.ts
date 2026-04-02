@@ -24,6 +24,7 @@ export interface Trip {
   date_end: string;
   temperature: string;
   activities: string[];
+  archived?: boolean;
   user_id: string;
 }
 
@@ -33,4 +34,6 @@ export interface TripItem {
   item_id: string;
   is_packed: boolean;
   quantity?: number;
+  note?: string;
+  order?: number;
 }

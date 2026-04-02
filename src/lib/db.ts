@@ -71,6 +71,44 @@ export const createTrip = async (trip: Omit<Trip, "id" | "user_id">) => {
   return await addDoc(collection(db, "trips"), { ...trip, user_id: user.uid });
 };
 
+export const updateTrip = async (tripId: string, data: Partial<Omit<Trip, "id" | "user_id">>) => {
+  await updateDoc(doc(db, "trips", tripId), data);
+};
+
+export const archiveTrip = async (tripId: string, archived: boolean) => {
+  await updateDoc(doc(db, "trips", tripId), { archived });
+};
+
+export const duplicateTrip = async (tripId: string): Promise<string> => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not auth");
+
+  const [tripSnap, itemsSnap] = await Promise.all([
+    getDoc(doc(db, "trips", tripId)),
+    getDocs(query(collection(db, "trip_items"), where("trip_id", "==", tripId))),
+  ]);
+
+  if (!tripSnap.exists()) throw new Error("Trip not found");
+  const original = tripSnap.data() as Trip;
+
+  const newTripRef = await addDoc(collection(db, "trips"), {
+    ...original,
+    name: original.name + " (copy)",
+    archived: false,
+    user_id: user.uid,
+  });
+
+  const batch = writeBatch(db);
+  itemsSnap.docs.forEach(d => {
+    const ti = d.data() as TripItem;
+    const ref = doc(collection(db, "trip_items"));
+    batch.set(ref, { ...ti, trip_id: newTripRef.id, is_packed: false });
+  });
+  await batch.commit();
+
+  return newTripRef.id;
+};
+
 export const addItemToTrip = async (tripId: string, itemName: string, tagIdForTemp: string) => {
   const user = auth.currentUser;
   if (!user) return;
@@ -90,6 +128,19 @@ export const addItemToTrip = async (tripId: string, itemName: string, tagIdForTe
   return itemRef.id;
 };
 
+export const addExistingItemToTrip = async (tripId: string, itemId: string, quantity?: number) => {
+  await addDoc(collection(db, "trip_items"), {
+    trip_id: tripId,
+    item_id: itemId,
+    is_packed: false,
+    ...(quantity ? { quantity } : {}),
+  });
+};
+
+export const removeTripItem = async (tripItemId: string) => {
+  await deleteDoc(doc(db, "trip_items", tripItemId));
+};
+
 // ── Trip Items ─────────────────────────────────────────
 export const updateTripItemStatus = async (tripItemId: string, is_packed: boolean) => {
   await updateDoc(doc(db, "trip_items", tripItemId), { is_packed });
@@ -97,6 +148,18 @@ export const updateTripItemStatus = async (tripItemId: string, is_packed: boolea
 
 export const updateTripItemQuantity = async (tripItemId: string, quantity: number) => {
   await updateDoc(doc(db, "trip_items", tripItemId), { quantity });
+};
+
+export const updateTripItemNote = async (tripItemId: string, note: string) => {
+  await updateDoc(doc(db, "trip_items", tripItemId), { note: note || null });
+};
+
+export const reorderTripItems = async (updates: { id: string; order: number }[]) => {
+  const batch = writeBatch(db);
+  updates.forEach(({ id, order }) => {
+    batch.update(doc(db, "trip_items", id), { order });
+  });
+  await batch.commit();
 };
 
 // ── Trip generation ────────────────────────────────────

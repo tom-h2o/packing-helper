@@ -4,7 +4,7 @@ import { auth } from "../lib/firebase";
 import { fetchTrips, fetchItems, fetchTags } from "../lib/db";
 import type { Trip, Tag } from "../lib/schema";
 import { Button } from "../components/ui/button";
-import { Plus, PlaneTakeoff, Backpack, Compass, Luggage } from "lucide-react";
+import { Plus, PlaneTakeoff, Backpack, Compass, Luggage, Archive } from "lucide-react";
 import { getFlagEmoji } from "../lib/countries";
 
 export default function Dashboard() {
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [totalItems, setTotalItems] = useState(0);
   const [tagMap, setTagMap] = useState<Map<string, Tag>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -55,7 +56,7 @@ export default function Dashboard() {
           <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <Luggage className="h-6 w-6 text-primary" />
           </div>
-          <span className="text-3xl font-extrabold">{trips.length}</span>
+          <span className="text-3xl font-extrabold">{trips.filter(t => !t.archived).length}</span>
           <span className="text-xs uppercase tracking-widest text-muted-foreground mt-1 font-bold">Planned Trips</span>
         </div>
         <div className="glass-card p-6 rounded-3xl flex flex-col items-center justify-center text-center group">
@@ -91,11 +92,22 @@ export default function Dashboard() {
 
       {/* Trips Grid */}
       <section>
-        <div className="flex justify-between items-end mb-6 px-2">
+        <div className="flex justify-between items-center mb-6 px-2">
           <h2 className="text-2xl font-extrabold tracking-tight">Your Trips</h2>
+          {trips.some(t => t.archived) && (
+            <button
+              type="button"
+              onClick={() => setShowArchived(s => !s)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-colors
+                ${showArchived ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'border-border text-muted-foreground hover:bg-muted'}`}
+            >
+              <Archive className="w-4 h-4" />
+              {showArchived ? 'Hide archived' : 'Show archived'}
+            </button>
+          )}
         </div>
 
-        {trips.length === 0 ? (
+        {trips.filter(t => showArchived ? t.archived : !t.archived).length === 0 ? (
           <div className="glass-card py-20 text-center rounded-3xl border-dashed">
             <div className="h-20 w-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-6">
               <PlaneTakeoff className="w-8 h-8 text-muted-foreground" />
@@ -105,7 +117,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trips.map((trip, i) => (
+            {trips.filter(t => showArchived ? t.archived : !t.archived).map((trip, i) => (
               <Link to={`/trip/${trip.id}`} key={trip.id} className="group relative" style={{animationDelay: `${i * 100}ms`}} >
                 <div className="absolute -inset-1 bg-gradient-to-tr from-primary/40 to-indigo-500/40 rounded-[2rem] blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
                 <div className="relative glass-card h-full p-8 text-left rounded-3xl flex flex-col bg-card/80 overflow-hidden">
